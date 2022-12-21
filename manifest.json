@@ -8,5 +8,9 @@
       "matches": ["https://*/*"],
       "js": ["src/Content.root.tsx"]
     }
-  ]
+  ],
+  "background": {
+    "service_worker": "src/background.ts",
+    "type": "module"
+  }
 }
