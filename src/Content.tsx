@@ -1,68 +1,69 @@
 import { useEffect, useState } from 'react';
 
+type MousePoint = {
+  x: number;
+  y: number;
+};
+
+const isMouseInsideOfDOMRect = (domRect: DOMRect, { x, y }: MousePoint) => {
+  return (
+    domRect.left <= x &&
+    domRect.right >= x &&
+    domRect.top <= y &&
+    domRect.bottom >= y
+  );
+};
+
+function getWordAtMousePoint(
+  node: Node,
+  mousePoint: MousePoint,
+): string | null {
+  if (node.nodeType === node.TEXT_NODE) {
+    const textRange = document.caretRangeFromPoint(mousePoint.x, mousePoint.y);
+    if (textRange === null) return null;
+
+    // @ts-ignore
+    textRange.expand('word');
+    const wordAtMousePoint = textRange.toString().trim();
+    return wordAtMousePoint;
+  } else {
+    for (let i = 0; i < node.childNodes.length; i++) {
+      const childNode = node.childNodes[i];
+      const document = childNode.ownerDocument;
+      if (document === null) continue;
+
+      const range = document.createRange();
+      range.selectNodeContents(node.childNodes[i]);
+      const domRect = range.getBoundingClientRect();
+      if (isMouseInsideOfDOMRect(domRect, mousePoint)) {
+        return getWordAtMousePoint(childNode, mousePoint);
+      }
+    }
+  }
+  return null;
+}
+
 function Content() {
   const [translatedText, setTranslatedText] = useState('');
-  const [rectPosition, setRectPosition] = useState<{
-    top: number;
-    left: number;
-  }>({ top: 0, left: 0 });
   const [isHotKeyPressed, setIsHotKeyPressed] = useState(false);
-
-  useEffect(() => {
-    const handleSelectionChange = () => {
-      const selection = window.getSelection();
-      if (selection === null) return;
-      if (selection.isCollapsed) {
-        setTranslatedText('');
-        setRectPosition({ top: 0, left: 0 });
-        return;
-      }
-
-      const range = selection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-      setRectPosition({
-        top: rect.y + rect.height * 1.2 + window.scrollY,
-        left: rect.x,
-      });
-
-      const selectedText = selection.toString();
-      if (selectedText.length === 0) return;
-      const isSupportedText = (text: string) => /^[A-Za-z\s\_]*$/.test(text);
-      if (!isSupportedText(selectedText)) return;
-
-      chrome.runtime.sendMessage(
-        { type: 'selectedText', data: selectedText },
-        (response) => {
-          setTranslatedText(response.data);
-        },
-      );
-    };
-
-    document.addEventListener('selectionchange', handleSelectionChange);
-    return () => {
-      document.removeEventListener('selectionchange', handleSelectionChange);
-    };
-  }, []);
+  const [tooltipPosition, setTooltipPosition] = useState({ left: 0, top: 0 });
 
   useEffect(() => {
     const IS_MAC_OS = /Mac OS X/.test(navigator.userAgent);
-    const getHotKey = (event: KeyboardEvent) =>
-      IS_MAC_OS ? event.metaKey : event.ctrlKey;
     const isHotKey = (event: KeyboardEvent) =>
-      event.key === 'Meta' || event.key === 'Control';
+      IS_MAC_OS ? event.key === 'Meta' : event.key === 'Control';
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.repeat) return;
       if (!isHotKey) return;
 
-      const hotKey = getHotKey(event);
-      setIsHotKeyPressed(hotKey);
+      setIsHotKeyPressed(true);
     };
-    const handleKeyUp = (event: KeyboardEvent) => {
+    const handleKeyUp = () => {
       if (!isHotKey) return;
 
-      const hotKey = getHotKey(event);
-      setIsHotKeyPressed(hotKey);
+      setIsHotKeyPressed(false);
+      setTranslatedText('');
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -73,6 +74,53 @@ function Content() {
     };
   }, []);
 
+  useEffect(() => {
+    let timeoutID: number | null = null;
+    const handleMouseMove = (event: MouseEvent) => {
+      if (translatedText !== '') return;
+      if (timeoutID !== null) {
+        clearTimeout(timeoutID);
+      }
+
+      timeoutID = setTimeout(() => {
+        const elementAtPoint = document.elementFromPoint(
+          event.clientX,
+          event.clientY,
+        );
+        if (elementAtPoint === null) return;
+
+        const wordAtMousePoint = getWordAtMousePoint(elementAtPoint, {
+          x: event.clientX,
+          y: event.clientY,
+        });
+        if (wordAtMousePoint === null) return;
+
+        const isSupportedWord = (word: string) => /^[A-Za-z\s\_]*$/.test(word);
+        if (!isSupportedWord(wordAtMousePoint)) return;
+
+        chrome.runtime.sendMessage(
+          { type: 'word', data: wordAtMousePoint },
+          (response) => {
+            const elementFontSize = getComputedStyle(elementAtPoint).fontSize;
+            setTooltipPosition({
+              left: event.clientX,
+              top: event.clientY + window.scrollY + parseInt(elementFontSize),
+            });
+            setTranslatedText(response.data);
+          },
+        );
+      }, 100);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      if (timeoutID !== null) {
+        clearTimeout(timeoutID);
+      }
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [translatedText]);
+
   return (
     <div>
       {translatedText && isHotKeyPressed && (
@@ -81,8 +129,8 @@ function Content() {
             width: 'max-content',
             maxWidth: '500px',
             position: 'absolute',
-            top: rectPosition.top,
-            left: rectPosition.left,
+            top: tooltipPosition.top,
+            left: tooltipPosition.left,
             zIndex: 2147483647,
             backgroundColor: '#424557',
             backdropFilter: 'saturate(180%) blur(20px)',
