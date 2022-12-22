@@ -1,0 +1,8 @@
+{
+  "editor.defaultFormatter": "rome.rome",
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+}
+
+
