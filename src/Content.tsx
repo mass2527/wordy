@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 function Content() {
-  const [translatedText, setTranslatedText] = useState("");
+  const [translatedText, setTranslatedText] = useState('');
   const [rectPosition, setRectPosition] = useState<{
     top: number;
     left: number;
@@ -13,7 +13,7 @@ function Content() {
       const selection = window.getSelection();
       if (selection === null) return;
       if (selection.isCollapsed) {
-        setTranslatedText("");
+        setTranslatedText('');
         setRectPosition({ top: 0, left: 0 });
         return;
       }
@@ -31,16 +31,16 @@ function Content() {
       if (!isSupportedText(selectedText)) return;
 
       chrome.runtime.sendMessage(
-        { type: "selectedText", data: selectedText },
+        { type: 'selectedText', data: selectedText },
         (response) => {
           setTranslatedText(response.data);
-        }
+        },
       );
     };
 
-    document.addEventListener("selectionchange", handleSelectionChange);
+    document.addEventListener('selectionchange', handleSelectionChange);
     return () => {
-      document.removeEventListener("selectionchange", handleSelectionChange);
+      document.removeEventListener('selectionchange', handleSelectionChange);
     };
   }, []);
 
@@ -49,7 +49,7 @@ function Content() {
     const getHotKey = (event: KeyboardEvent) =>
       IS_MAC_OS ? event.metaKey : event.ctrlKey;
     const isHotKey = (event: KeyboardEvent) =>
-      event.key === "Meta" || event.key === "Control";
+      event.key === 'Meta' || event.key === 'Control';
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.repeat) return;
@@ -65,11 +65,11 @@ function Content() {
       setIsHotKeyPressed(hotKey);
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("keyup", handleKeyUp);
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("keyup", handleKeyUp);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
 
@@ -78,22 +78,23 @@ function Content() {
       {translatedText && isHotKeyPressed && (
         <div
           style={{
-            width: "max-content",
-            maxWidth: "500px",
-            position: "absolute",
+            width: 'max-content',
+            maxWidth: '500px',
+            position: 'absolute',
             top: rectPosition.top,
             left: rectPosition.left,
             zIndex: 2147483647,
-            background: "rgb(0,0,0)",
-            color: "rgb(255,255,255)",
-            padding: "8px",
-            fontSize: "16px",
+            backgroundColor: '#424557',
+            backdropFilter: 'saturate(180%) blur(20px)',
+            color: '#fff',
+            padding: '8px',
+            fontSize: '16px',
             lineHeight: 1.5,
-            borderColor: "rgba(255, 255, 255, 0.01)",
-            borderRadius: "10px",
+            borderRadius: '10px',
           }}
+          // rome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
           dangerouslySetInnerHTML={{
-            __html: translatedText.replace(/([2-9]\.)/g, "<br/>$1"),
+            __html: translatedText.replace(/([2-9]\.)/g, '<br/>$1'),
           }}
         />
       )}
