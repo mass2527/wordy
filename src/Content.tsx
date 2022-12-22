@@ -44,7 +44,10 @@ function getWordAtMousePoint(
 }
 
 function Content() {
-  const [translatedText, setTranslatedText] = useState('');
+  const [translation, setTranslation] = useState({
+    word: '',
+    definition: '',
+  });
   const [isHotKeyPressed, setIsHotKeyPressed] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ left: 0, top: 0 });
 
@@ -63,7 +66,10 @@ function Content() {
       if (!isHotKey) return;
 
       setIsHotKeyPressed(false);
-      setTranslatedText('');
+      setTranslation({
+        word: '',
+        definition: '',
+      });
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -77,7 +83,7 @@ function Content() {
   useEffect(() => {
     let timeoutID: number | null = null;
     const handleMouseMove = (event: MouseEvent) => {
-      if (translatedText !== '') return;
+      if (translation.definition !== '') return;
       if (timeoutID !== null) {
         clearTimeout(timeoutID);
       }
@@ -106,7 +112,10 @@ function Content() {
               left: event.clientX,
               top: event.clientY + window.scrollY + parseInt(elementFontSize),
             });
-            setTranslatedText(response.data);
+            setTranslation({
+              word: wordAtMousePoint,
+              definition: response.data,
+            });
           },
         );
       }, 100);
@@ -119,11 +128,11 @@ function Content() {
       }
       document.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [translatedText]);
+  }, [translation]);
 
   return (
     <div>
-      {translatedText && isHotKeyPressed && (
+      {translation.definition && isHotKeyPressed && (
         <div
           style={{
             width: 'max-content',
@@ -142,7 +151,13 @@ function Content() {
           }}
           // rome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
           dangerouslySetInnerHTML={{
-            __html: translatedText.replace(/([2-9]\.)/g, '<br/>$1'),
+            __html: `
+            <a href=${`https://dic.daum.net/word/view.do?wordid=ekw000139361&q=${translation.word}`}
+            target='_blank'
+            rel="noopener noreferrer">
+            ${translation.word}</a>
+            <br/>
+            ${translation.definition.replace(/([2-9]\.)/g, '<br/>$1')}`,
           }}
         />
       )}
