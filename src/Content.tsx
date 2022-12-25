@@ -58,18 +58,19 @@ function Content() {
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.repeat) return;
-      if (!isHotKey) return;
+      if (!isHotKey(event)) return;
 
       setIsHotKeyPressed(true);
     };
-    const handleKeyUp = () => {
-      if (!isHotKey) return;
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (!isHotKey(event)) return;
 
       setIsHotKeyPressed(false);
       setTranslation({
         word: '',
         definition: '',
       });
+      setTooltipPosition({ left: 0, top: 0 });
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -83,7 +84,7 @@ function Content() {
   useEffect(() => {
     let timeoutID: number | null = null;
     const handleMouseMove = (event: MouseEvent) => {
-      if (translation.definition !== '') return;
+      if (!isHotKeyPressed) return;
       if (timeoutID !== null) {
         clearTimeout(timeoutID);
       }
@@ -100,6 +101,7 @@ function Content() {
           y: event.clientY,
         });
         if (wordAtMousePoint === null) return;
+        if (wordAtMousePoint === translation.word) return;
 
         const isSupportedWord = (word: string) => /^[A-Za-z\s\_]*$/.test(word);
         if (!isSupportedWord(wordAtMousePoint)) return;
@@ -121,14 +123,16 @@ function Content() {
       }, 100);
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    return () => {
-      if (timeoutID !== null) {
-        clearTimeout(timeoutID);
-      }
-      document.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, [translation]);
+    if (isHotKeyPressed) {
+      document.addEventListener('mousemove', handleMouseMove);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        if (timeoutID !== null) {
+          clearTimeout(timeoutID);
+        }
+      };
+    }
+  }, [isHotKeyPressed, translation.word]);
 
   return (
     <div>
@@ -145,21 +149,22 @@ function Content() {
             backdropFilter: 'saturate(180%) blur(20px)',
             color: '#fff',
             padding: '8px',
-            fontSize: '16px',
+            fontSize: '14px',
             lineHeight: 1.5,
             borderRadius: '10px',
           }}
-          // rome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
-          dangerouslySetInnerHTML={{
-            __html: `
-            <a href=${`https://dic.daum.net/word/view.do?wordid=ekw000139361&q=${translation.word}`}
-            target='_blank'
-            rel="noopener noreferrer">
-            ${translation.word}</a>
-            <br/>
-            ${translation.definition.replace(/([2-9]\.)/g, '<br/>$1')}`,
-          }}
-        />
+        >
+          <span style={{ fontSize: '16px' }}>{translation.word}</span>
+          <div
+            // rome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
+            dangerouslySetInnerHTML={{
+              __html: `${translation.definition.replace(
+                /([2-9]\.)/g,
+                '<br/>$1',
+              )}`,
+            }}
+          />
+        </div>
       )}
     </div>
   );
