@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import debounce from 'lodash/debounce';
 
 type MousePoint = {
   x: number;
@@ -82,54 +83,43 @@ function Content() {
   }, []);
 
   useEffect(() => {
-    let timeoutID: number | null = null;
-    const handleMouseMove = (event: MouseEvent) => {
-      if (!isHotKeyPressed) return;
-      if (timeoutID !== null) {
-        clearTimeout(timeoutID);
-      }
+    const handleDebouncedMouseMove = debounce((event: MouseEvent) => {
+      const elementAtPoint = document.elementFromPoint(
+        event.clientX,
+        event.clientY,
+      );
+      if (elementAtPoint === null) return;
 
-      timeoutID = setTimeout(() => {
-        const elementAtPoint = document.elementFromPoint(
-          event.clientX,
-          event.clientY,
-        );
-        if (elementAtPoint === null) return;
+      const wordAtMousePoint = getWordAtMousePoint(elementAtPoint, {
+        x: event.clientX,
+        y: event.clientY,
+      });
+      if (wordAtMousePoint === null) return;
+      if (wordAtMousePoint === translation.word) return;
 
-        const wordAtMousePoint = getWordAtMousePoint(elementAtPoint, {
-          x: event.clientX,
-          y: event.clientY,
-        });
-        if (wordAtMousePoint === null) return;
-        if (wordAtMousePoint === translation.word) return;
+      const isSupportedWord = (word: string) => /^[A-Za-z\s\_]*$/.test(word);
+      if (!isSupportedWord(wordAtMousePoint)) return;
 
-        const isSupportedWord = (word: string) => /^[A-Za-z\s\_]*$/.test(word);
-        if (!isSupportedWord(wordAtMousePoint)) return;
-
-        chrome.runtime.sendMessage(
-          { type: 'word', data: wordAtMousePoint },
-          (response) => {
-            const elementFontSize = getComputedStyle(elementAtPoint).fontSize;
-            setTooltipPosition({
-              left: event.clientX,
-              top: event.clientY + window.scrollY + parseInt(elementFontSize),
-            });
-            setTranslation({
-              word: wordAtMousePoint,
-              definition: response.data,
-            });
-          },
-        );
-      }, 100);
-    };
+      chrome.runtime.sendMessage(
+        { type: 'word', data: wordAtMousePoint },
+        (response) => {
+          const elementFontSize = getComputedStyle(elementAtPoint).fontSize;
+          setTooltipPosition({
+            left: event.clientX,
+            top: event.clientY + window.scrollY + parseInt(elementFontSize),
+          });
+          setTranslation({
+            word: wordAtMousePoint,
+            definition: response.data,
+          });
+        },
+      );
+    }, 100);
 
     if (isHotKeyPressed) {
-      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mousemove', handleDebouncedMouseMove);
       return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        if (timeoutID !== null) {
-          clearTimeout(timeoutID);
-        }
+        document.removeEventListener('mousemove', handleDebouncedMouseMove);
       };
     }
   }, [isHotKeyPressed, translation.word]);
