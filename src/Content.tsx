@@ -139,12 +139,12 @@ function Content() {
             backdropFilter: 'saturate(180%) blur(20px)',
             color: '#fff',
             padding: '8px',
-            fontSize: '14px',
+            fontSize: '16px',
             lineHeight: 1.5,
             borderRadius: '10px',
           }}
         >
-          <span style={{ fontSize: '16px' }}>{translation.word}</span>
+          <span style={{ fontSize: '20px' }}>{translation.word}</span>
           <div
             // rome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
             dangerouslySetInnerHTML={{
