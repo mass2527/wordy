@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
 
 type MousePoint = {
@@ -50,7 +50,18 @@ function Content() {
     definition: '',
   });
   const [isHotKeyPressed, setIsHotKeyPressed] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ left: 0, top: 0 });
+  const [tooltipPosition, setTooltipPosition] = useState<
+    Partial<{
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+    }>
+  >({
+    left: 0,
+    top: 0,
+  });
+  const [elementFontSize, setElementFontSize] = useState(0);
 
   useEffect(() => {
     const IS_MAC_OS = /Mac OS X/.test(navigator.userAgent);
@@ -89,13 +100,19 @@ function Content() {
         event.clientY,
       );
       if (elementAtPoint === null) return;
+      const tooltipElement = elementAtPoint.closest('#assistant-tooltip');
+      if (tooltipElement !== null) return;
 
       const wordAtMousePoint = getWordAtMousePoint(elementAtPoint, {
         x: event.clientX,
         y: event.clientY,
       });
       if (wordAtMousePoint === null) return;
-      if (wordAtMousePoint === translation.word) return;
+      if (translation.word === wordAtMousePoint) return;
+      setTranslation({
+        word: wordAtMousePoint,
+        definition: '',
+      });
 
       const isSupportedWord = (word: string) => /^[A-Za-z\s\_]*$/.test(word);
       if (!isSupportedWord(wordAtMousePoint)) return;
@@ -103,15 +120,18 @@ function Content() {
       chrome.runtime.sendMessage(
         { type: 'word', data: wordAtMousePoint },
         (response) => {
-          const elementFontSize = getComputedStyle(elementAtPoint).fontSize;
+          const elementFontSize = parseInt(
+            getComputedStyle(elementAtPoint).fontSize,
+          );
+          setElementFontSize(elementFontSize);
           setTooltipPosition({
             left: event.clientX,
-            top: event.clientY + window.scrollY + parseInt(elementFontSize),
+            top: event.clientY + window.scrollY + elementFontSize,
           });
-          setTranslation({
-            word: wordAtMousePoint,
+          setTranslation((prevTranslation) => ({
+            ...prevTranslation,
             definition: response.data,
-          });
+          }));
         },
       );
     }, 100);
@@ -122,18 +142,63 @@ function Content() {
         document.removeEventListener('mousemove', handleDebouncedMouseMove);
       };
     }
-  }, [isHotKeyPressed, translation.word]);
+  }, [isHotKeyPressed, translation]);
+
+  const measuredRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (node === null) return;
+      if (translation.definition === '') return;
+
+      const PADDING = 16;
+      const rect = node.getBoundingClientRect();
+
+      const isOverflowingHorizontal =
+        rect.width > window.innerWidth - 2 * PADDING;
+      const isOverflowingRight = rect.right > window.innerWidth - PADDING;
+      if (isOverflowingHorizontal) {
+        setTooltipPosition((prevTooltipPosition) => ({
+          ...prevTooltipPosition,
+          left: PADDING,
+          width: window.innerWidth - 2 * PADDING,
+        }));
+      } else if (isOverflowingRight) {
+        setTooltipPosition((prevTooltipPosition) => ({
+          ...prevTooltipPosition,
+          left: undefined,
+          right: PADDING,
+        }));
+      }
+
+      const isOverflowingVertical =
+        rect.height > window.innerHeight - 2 * PADDING;
+      const isOverflowingBottom = rect.bottom > window.innerHeight - PADDING;
+      if (isOverflowingVertical) {
+        setTooltipPosition((prevTooltipPosition) => ({
+          ...prevTooltipPosition,
+          top: window.scrollY + PADDING,
+          height: window.innerHeight - 2 * PADDING,
+        }));
+      } else if (isOverflowingBottom) {
+        setTooltipPosition((prevTooltipPosition) => ({
+          ...prevTooltipPosition,
+          top: rect.top + window.scrollY - rect.height - elementFontSize,
+        }));
+      }
+    },
+    [elementFontSize, translation.definition],
+  );
 
   return (
     <div>
-      {translation.definition && isHotKeyPressed && (
+      {translation.definition && (
         <div
+          id='assistant-tooltip'
+          ref={measuredRef}
           style={{
             width: 'max-content',
             maxWidth: '500px',
+            maxHeight: '500px',
             position: 'absolute',
-            top: tooltipPosition.top,
-            left: tooltipPosition.left,
             zIndex: 2147483647,
             backgroundColor: '#424557',
             backdropFilter: 'saturate(180%) blur(20px)',
@@ -141,7 +206,9 @@ function Content() {
             padding: '8px',
             fontSize: '16px',
             lineHeight: 1.5,
-            borderRadius: '10px',
+            borderRadius: '8px',
+            overflow: 'auto',
+            ...tooltipPosition,
           }}
         >
           <span style={{ fontSize: '20px' }}>{translation.word}</span>
