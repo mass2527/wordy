@@ -1,67 +1,31 @@
 import { useCallback, useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
-
-type MousePoint = {
-  x: number;
-  y: number;
-};
-
-const isMouseInsideOfDOMRect = (domRect: DOMRect, { x, y }: MousePoint) => {
-  return (
-    domRect.left <= x &&
-    domRect.right >= x &&
-    domRect.top <= y &&
-    domRect.bottom >= y
-  );
-};
-
-function getWordAtMousePoint(
-  node: Node,
-  mousePoint: MousePoint,
-): string | null {
-  if (node.nodeType === node.TEXT_NODE) {
-    const textRange = document.caretRangeFromPoint(mousePoint.x, mousePoint.y);
-    if (textRange === null) return null;
-
-    // @ts-ignore
-    textRange.expand('word');
-    const wordAtMousePoint = textRange.toString().trim();
-    return wordAtMousePoint;
-  } else {
-    for (let i = 0; i < node.childNodes.length; i++) {
-      const childNode = node.childNodes[i];
-      const document = childNode.ownerDocument;
-      if (document === null) continue;
-
-      const range = document.createRange();
-      range.selectNodeContents(node.childNodes[i]);
-      const domRect = range.getBoundingClientRect();
-      if (isMouseInsideOfDOMRect(domRect, mousePoint)) {
-        return getWordAtMousePoint(childNode, mousePoint);
-      }
-    }
-  }
-  return null;
-}
+import { DeepPartial } from './utils/DeepPartial';
+import usePrevious from './hooks/usePrevious';
+import { getWordAtMousePoint } from './utils/getWordAtMousePoint';
 
 function Content() {
-  const [translation, setTranslation] = useState({
-    word: '',
+  const [wordDetails, setWordDetails] = useState({
+    term: '',
     definition: '',
+    fontSize: 0,
   });
   const [isHotKeyPressed, setIsHotKeyPressed] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState<
-    Partial<{
-      left: number;
-      right: number;
-      top: number;
-      bottom: number;
+  const [tooltipStyles, setTooltipStyles] = useState<
+    DeepPartial<{
+      position: {
+        left: number;
+        top: number;
+        right: number;
+        bottom: number;
+      };
+      size: {
+        width: number;
+        height: number;
+      };
     }>
-  >({
-    left: 0,
-    top: 0,
-  });
-  const [elementFontSize, setElementFontSize] = useState(0);
+  >({});
+  const previousWordAtMousePoint = usePrevious(wordDetails.term);
 
   useEffect(() => {
     const IS_MAC_OS = /Mac OS X/.test(navigator.userAgent);
@@ -78,11 +42,12 @@ function Content() {
       if (!isHotKey(event)) return;
 
       setIsHotKeyPressed(false);
-      setTranslation({
-        word: '',
+      setWordDetails({
+        term: '',
         definition: '',
+        fontSize: 0,
       });
-      setTooltipPosition({ left: 0, top: 0 });
+      setTooltipStyles({ position: { left: 0, top: 0 } });
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -107,11 +72,14 @@ function Content() {
         x: event.clientX,
         y: event.clientY,
       });
-      if (wordAtMousePoint === null) return;
-      if (translation.word === wordAtMousePoint) return;
-      setTranslation({
-        word: wordAtMousePoint,
+      if (wordAtMousePoint === null || wordAtMousePoint === '') return;
+      if (wordDetails.term === wordAtMousePoint) return;
+      if (previousWordAtMousePoint === wordAtMousePoint) return;
+
+      setWordDetails({
+        term: wordAtMousePoint,
         definition: '',
+        fontSize: 0,
       });
 
       const isSupportedWord = (word: string) => /^[A-Za-z\s\_]*$/.test(word);
@@ -123,14 +91,16 @@ function Content() {
           const elementFontSize = parseInt(
             getComputedStyle(elementAtPoint).fontSize,
           );
-          setElementFontSize(elementFontSize);
-          setTooltipPosition({
-            left: event.clientX,
-            top: event.clientY + window.scrollY + elementFontSize,
+          setTooltipStyles({
+            position: {
+              left: event.clientX,
+              top: event.clientY + window.scrollY + elementFontSize,
+            },
           });
-          setTranslation((prevTranslation) => ({
+          setWordDetails((prevTranslation) => ({
             ...prevTranslation,
             definition: response.data,
+            fontSize: elementFontSize,
           }));
         },
       );
@@ -142,12 +112,12 @@ function Content() {
         document.removeEventListener('mousemove', handleDebouncedMouseMove);
       };
     }
-  }, [isHotKeyPressed, translation]);
+  }, [isHotKeyPressed, wordDetails, previousWordAtMousePoint]);
 
   const measuredRef = useCallback(
     (node: HTMLDivElement | null) => {
       if (node === null) return;
-      if (translation.definition === '') return;
+      if (wordDetails.definition === '') return;
 
       const PADDING = 16;
       const rect = node.getBoundingClientRect();
@@ -156,16 +126,24 @@ function Content() {
         rect.width > window.innerWidth - 2 * PADDING;
       const isOverflowingRight = rect.right > window.innerWidth - PADDING;
       if (isOverflowingHorizontal) {
-        setTooltipPosition((prevTooltipPosition) => ({
-          ...prevTooltipPosition,
-          left: PADDING,
-          width: window.innerWidth - 2 * PADDING,
+        setTooltipStyles((prevTooltipPosition) => ({
+          position: {
+            ...prevTooltipPosition.position,
+            left: PADDING,
+          },
+          size: {
+            ...prevTooltipPosition.size,
+            width: window.innerWidth - 2 * PADDING,
+          },
         }));
       } else if (isOverflowingRight) {
-        setTooltipPosition((prevTooltipPosition) => ({
+        setTooltipStyles((prevTooltipPosition) => ({
           ...prevTooltipPosition,
-          left: undefined,
-          right: PADDING,
+          position: {
+            ...prevTooltipPosition.position,
+            left: undefined,
+            right: PADDING,
+          },
         }));
       }
 
@@ -173,29 +151,36 @@ function Content() {
         rect.height > window.innerHeight - 2 * PADDING;
       const isOverflowingBottom = rect.bottom > window.innerHeight - PADDING;
       if (isOverflowingVertical) {
-        setTooltipPosition((prevTooltipPosition) => ({
-          ...prevTooltipPosition,
-          top: window.scrollY + PADDING,
-          height: window.innerHeight - 2 * PADDING,
+        setTooltipStyles((prevTooltipPosition) => ({
+          position: {
+            ...prevTooltipPosition.position,
+            top: window.scrollY + PADDING,
+          },
+          size: {
+            ...prevTooltipPosition.size,
+            height: window.innerHeight - 2 * PADDING,
+          },
         }));
       } else if (isOverflowingBottom) {
-        setTooltipPosition((prevTooltipPosition) => ({
+        setTooltipStyles((prevTooltipPosition) => ({
           ...prevTooltipPosition,
-          top: rect.top + window.scrollY - rect.height - elementFontSize,
+          position: {
+            ...prevTooltipPosition.position,
+            top: rect.top + window.scrollY - rect.height - wordDetails.fontSize,
+          },
         }));
       }
     },
-    [elementFontSize, translation.definition],
+    [wordDetails.definition, wordDetails.fontSize],
   );
 
   return (
     <div>
-      {translation.definition && (
+      {wordDetails.definition && (
         <div
           id='assistant-tooltip'
           ref={measuredRef}
           style={{
-            width: 'max-content',
             maxWidth: '500px',
             maxHeight: '500px',
             position: 'absolute',
@@ -208,14 +193,15 @@ function Content() {
             lineHeight: 1.5,
             borderRadius: '8px',
             overflow: 'auto',
-            ...tooltipPosition,
+            ...tooltipStyles.position,
+            ...tooltipStyles.size,
           }}
         >
-          <span style={{ fontSize: '20px' }}>{translation.word}</span>
+          <span style={{ fontSize: '20px' }}>{wordDetails.term}</span>
           <div
             // rome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
             dangerouslySetInnerHTML={{
-              __html: `${translation.definition.replace(
+              __html: `${wordDetails.definition.replace(
                 /([2-9]\.)/g,
                 '<br/>$1',
               )}`,
