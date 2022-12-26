@@ -47,7 +47,7 @@ function Content() {
         definition: '',
         fontSize: 0,
       });
-      setTooltipStyles({ position: { left: 0, top: 0 } });
+      setTooltipStyles({});
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -114,72 +114,74 @@ function Content() {
     }
   }, [isHotKeyPressed, wordDetails, previousWordAtMousePoint]);
 
-  const measuredRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      if (node === null) return;
-      if (wordDetails.definition === '') return;
+  const adjustTooltipStyles = (node: HTMLDivElement | null) => {
+    if (node === null) return;
 
-      const PADDING = 16;
-      const rect = node.getBoundingClientRect();
+    const PADDING = 16;
+    const rect = node.getBoundingClientRect();
 
-      const isOverflowingHorizontal =
-        rect.width > window.innerWidth - 2 * PADDING;
-      const isOverflowingRight = rect.right > window.innerWidth - PADDING;
-      if (isOverflowingHorizontal) {
-        setTooltipStyles((prevTooltipPosition) => ({
-          position: {
-            ...prevTooltipPosition.position,
-            left: PADDING,
-          },
-          size: {
-            ...prevTooltipPosition.size,
-            width: window.innerWidth - 2 * PADDING,
-          },
-        }));
-      } else if (isOverflowingRight) {
-        setTooltipStyles((prevTooltipPosition) => ({
-          ...prevTooltipPosition,
-          position: {
-            ...prevTooltipPosition.position,
-            left: undefined,
-            right: PADDING,
-          },
-        }));
-      }
+    const isOverflowingHorizontal =
+      rect.width > window.innerWidth - 2 * PADDING;
+    const isOverflowingRight = rect.right > window.innerWidth - PADDING;
+    if (isOverflowingHorizontal) {
+      setTooltipStyles((prevTooltipPosition) => ({
+        position: {
+          ...prevTooltipPosition.position,
+          left: PADDING,
+        },
+        size: {
+          ...prevTooltipPosition.size,
+          width: window.innerWidth - 2 * PADDING,
+        },
+      }));
+      return;
+    } else if (isOverflowingRight) {
+      setTooltipStyles((prevTooltipPosition) => ({
+        ...prevTooltipPosition,
+        position: {
+          ...prevTooltipPosition.position,
+          left: undefined,
+          right: PADDING,
+        },
+      }));
+      return;
+    }
 
-      const isOverflowingVertical =
-        rect.height > window.innerHeight - 2 * PADDING;
-      const isOverflowingBottom = rect.bottom > window.innerHeight - PADDING;
-      if (isOverflowingVertical) {
-        setTooltipStyles((prevTooltipPosition) => ({
-          position: {
-            ...prevTooltipPosition.position,
-            top: window.scrollY + PADDING,
-          },
-          size: {
-            ...prevTooltipPosition.size,
-            height: window.innerHeight - 2 * PADDING,
-          },
-        }));
-      } else if (isOverflowingBottom) {
-        setTooltipStyles((prevTooltipPosition) => ({
-          ...prevTooltipPosition,
-          position: {
-            ...prevTooltipPosition.position,
-            top: rect.top + window.scrollY - rect.height - wordDetails.fontSize,
-          },
-        }));
-      }
-    },
-    [wordDetails.definition, wordDetails.fontSize],
-  );
+    const isOverflowingVertical =
+      rect.height > window.innerHeight - 2 * PADDING;
+    const isOverflowingBottom = rect.bottom > window.innerHeight - PADDING;
+    if (isOverflowingVertical) {
+      setTooltipStyles((prevTooltipPosition) => ({
+        position: {
+          ...prevTooltipPosition.position,
+          top: window.scrollY + PADDING,
+        },
+        size: {
+          ...prevTooltipPosition.size,
+          height: window.innerHeight - 2 * PADDING,
+        },
+      }));
+    } else if (isOverflowingBottom) {
+      setTooltipStyles((prevTooltipPosition) => ({
+        ...prevTooltipPosition,
+        position: {
+          ...prevTooltipPosition.position,
+          top:
+            rect.top +
+            window.scrollY -
+            rect.height -
+            wordDetails.fontSize * 1.5,
+        },
+      }));
+    }
+  };
 
   return (
     <div>
       {wordDetails.definition && (
         <div
           id='assistant-tooltip'
-          ref={measuredRef}
+          ref={adjustTooltipStyles}
           style={{
             maxWidth: '500px',
             maxHeight: '500px',
