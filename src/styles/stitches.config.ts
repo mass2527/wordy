@@ -1,8 +1,9 @@
 import { createStitches } from '@stitches/react';
 import type * as Stitches from '@stitches/react';
+export type { VariantProps } from '@stitches/react';
 
 // https://www.figma.com/file/McyxmzOQELwvHO9W5jzwwV/Free-Placeholder-Logos-%7C-BRIX-Templates-(Community)?node-id=2%3A35&t=rj9WCJHh559yH8fX-0
-export const { styled, globalCss } = createStitches({
+export const { styled, globalCss, config } = createStitches({
   theme: {
     colors: {
       primary: '#4A3AFF',
@@ -31,6 +32,7 @@ export const { styled, globalCss } = createStitches({
       4: '0.25rem',
       8: '0.5rem',
       16: '1rem',
+      32: '2rem',
     },
     fonts: {
       untitled: 'Untitled Sans, -apple-system, system-ui, sans-serif',
@@ -38,6 +40,20 @@ export const { styled, globalCss } = createStitches({
     radii: {
       4: '0.25rem',
       8: '0.5rem',
+      12: '0.75rem',
+      round: '50%',
+    },
+    sizes: {
+      4: '0.25rem',
+      8: '0.5rem',
+      16: '1rem',
+      20: '1.25rem',
+      24: '1.5rem',
+      32: '2rem',
+      40: '2.5rem',
+      48: '3rem',
+      64: '4rem',
+      128: '8rem',
     },
   },
   utils: {
@@ -169,3 +185,5 @@ export const { styled, globalCss } = createStitches({
     }),
   },
 });
+
+export type CSS = Stitches.CSS<typeof config>;
