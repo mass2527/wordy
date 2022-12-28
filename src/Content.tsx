@@ -28,6 +28,23 @@ function Content() {
   const previousWordAtMousePoint = usePrevious(wordDetails.term);
 
   useEffect(() => {
+    const handleFocus = () => {
+      setIsHotKeyPressed(false);
+      setWordDetails({
+        term: '',
+        definition: '',
+        fontSize: 0,
+      });
+      setTooltipStyles({});
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  useEffect(() => {
     const IS_MAC_OS = /Mac OS X/.test(navigator.userAgent);
     const isHotKey = (event: KeyboardEvent) =>
       IS_MAC_OS ? event.key === 'Meta' : event.key === 'Control';
