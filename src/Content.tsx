@@ -26,7 +26,7 @@ function Content() {
       };
     }>
   >({});
-  const previousWordAtMousePoint = usePrevious(wordDetails.word);
+  const previousWord = usePrevious(wordDetails.word);
 
   useEffect(() => {
     const handleFocus = () => {
@@ -91,12 +91,12 @@ function Content() {
         y: event.clientY,
       });
       if (wordAtMousePoint === null || wordAtMousePoint === '') return;
-      if (wordDetails.word === wordAtMousePoint) return;
-      if (previousWordAtMousePoint === wordAtMousePoint) return;
       // it's, you'll, we've 등의 단어가 포함된 경우, ' 앞 단어를 가져옴
       const sanitizedWord = /^\w+\'\w+$/.test(wordAtMousePoint)
         ? wordAtMousePoint.split("'")[0]
         : wordAtMousePoint;
+      if (wordDetails.word === sanitizedWord || previousWord === sanitizedWord)
+        return;
 
       setWordDetails({
         word: sanitizedWord,
@@ -134,7 +134,7 @@ function Content() {
         document.removeEventListener('mousemove', handleDebouncedMouseMove);
       };
     }
-  }, [isHotKeyPressed, wordDetails, previousWordAtMousePoint]);
+  }, [isHotKeyPressed, wordDetails, previousWord]);
 
   const adjustTooltipStyles = (node: HTMLDivElement | null) => {
     if (node === null) return;
