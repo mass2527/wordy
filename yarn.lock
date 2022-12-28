@@ -366,6 +366,11 @@
   resolved "https://registry.yarnpkg.com/@rometools/cli-win32-x64/-/cli-win32-x64-11.0.0.tgz#c6d48db5ea52b393dae7fe04bfe803ad8cee71a5"
   integrity sha512-bmBai8WHxYjsGk1+je7ZTfCUCWq30WJI3pQM8pzTA674lfGTZ9ymJoZwTaIMSO4rL5V9mlO6uLunsBKso9VqOg==
 
+"@stitches/react@^1.2.8":
+  version "1.2.8"
+  resolved "https://registry.yarnpkg.com/@stitches/react/-/react-1.2.8.tgz#954f8008be8d9c65c4e58efa0937f32388ce3a38"
+  integrity sha512-9g9dWI4gsSVe8bNLlb+lMkBYsnIKCZTmvqvDG+Avnn69XfmHZKiaMrx7cgTaddq7aTPPmXiTsbFcUy0xgI4+wA==
+
 "@types/chrome@^0.0.205":
   version "0.0.205"
   resolved "https://registry.yarnpkg.com/@types/chrome/-/chrome-0.0.205.tgz#f21fa5de01f92b179aa927e2cc7554c4e0fe9470"
