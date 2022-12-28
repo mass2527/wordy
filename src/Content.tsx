@@ -3,10 +3,11 @@ import debounce from 'lodash/debounce';
 import { DeepPartial } from './utils/DeepPartial';
 import usePrevious from './hooks/usePrevious';
 import { getWordAtMousePoint } from './utils/getWordAtMousePoint';
+import { Box } from './components/Box';
 
 function Content() {
   const [wordDetails, setWordDetails] = useState({
-    term: '',
+    word: '',
     definition: '',
     fontSize: 0,
   });
@@ -25,13 +26,13 @@ function Content() {
       };
     }>
   >({});
-  const previousWordAtMousePoint = usePrevious(wordDetails.term);
+  const previousWordAtMousePoint = usePrevious(wordDetails.word);
 
   useEffect(() => {
     const handleFocus = () => {
       setIsHotKeyPressed(false);
       setWordDetails({
-        term: '',
+        word: '',
         definition: '',
         fontSize: 0,
       });
@@ -60,7 +61,7 @@ function Content() {
 
       setIsHotKeyPressed(false);
       setWordDetails({
-        term: '',
+        word: '',
         definition: '',
         fontSize: 0,
       });
@@ -90,20 +91,24 @@ function Content() {
         y: event.clientY,
       });
       if (wordAtMousePoint === null || wordAtMousePoint === '') return;
-      if (wordDetails.term === wordAtMousePoint) return;
+      if (wordDetails.word === wordAtMousePoint) return;
       if (previousWordAtMousePoint === wordAtMousePoint) return;
+      // it's, you'll, we've 등의 단어가 포함된 경우, ' 앞 단어를 가져옴
+      const sanitizedWord = /^\w+\'\w+$/.test(wordAtMousePoint)
+        ? wordAtMousePoint.split("'")[0]
+        : wordAtMousePoint;
 
       setWordDetails({
-        term: wordAtMousePoint,
+        word: sanitizedWord,
         definition: '',
         fontSize: 0,
       });
 
       const isSupportedWord = (word: string) => /^[A-Za-z\s\_]*$/.test(word);
-      if (!isSupportedWord(wordAtMousePoint)) return;
+      if (!isSupportedWord(sanitizedWord)) return;
 
       chrome.runtime.sendMessage(
-        { type: 'word', data: wordAtMousePoint },
+        { type: 'word', data: sanitizedWord },
         (response) => {
           const elementFontSize = parseInt(
             getComputedStyle(elementAtPoint).fontSize,
@@ -196,7 +201,7 @@ function Content() {
   return (
     <div>
       {wordDetails.definition && (
-        <div
+        <Box
           id='assistant-tooltip'
           ref={adjustTooltipStyles}
           style={{
@@ -204,20 +209,18 @@ function Content() {
             maxHeight: '500px',
             position: 'absolute',
             zIndex: 2147483647,
-            backgroundColor: '#424557',
-            backdropFilter: 'saturate(180%) blur(20px)',
-            color: '#fff',
-            padding: '8px',
-            fontSize: '16px',
-            lineHeight: 1.5,
-            borderRadius: '8px',
             overflow: 'auto',
             ...tooltipStyles.position,
             ...tooltipStyles.size,
           }}
+          css={{
+            color: '$neutral100',
+            bc: '$primary',
+            br: '$8',
+            p: '$8',
+          }}
         >
-          <span style={{ fontSize: '20px' }}>{wordDetails.term}</span>
-          <div
+          <Box
             // rome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
             dangerouslySetInnerHTML={{
               __html: `${wordDetails.definition.replace(
@@ -226,7 +229,7 @@ function Content() {
               )}`,
             }}
           />
-        </div>
+        </Box>
       )}
     </div>
   );
