@@ -3,6 +3,7 @@ import { styled } from '../styles/stitches.config';
 export const Text = styled('span', {
   // Reset
   fontVariantNumeric: 'tabular-nums',
+  fontWeight: '$400',
 
   variants: {
     size: {
