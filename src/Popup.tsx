@@ -3,7 +3,7 @@ import { Flex } from './components/Flex';
 import { Switch } from './components/Switch';
 import { Text } from './components/Text';
 
-function App() {
+function Popup() {
   return (
     <Box css={{ width: '22rem' }}>
       <Flex
@@ -25,7 +25,7 @@ function App() {
           설정
         </Text>
         <Flex justify='between' align='center'>
-          <Text size={14}>마우스를 단어에 올리면 뜻 확인</Text>
+          <Text size={14}>활성화</Text>
           <Switch />
         </Flex>
         <Flex justify='between' align='center'>
@@ -37,4 +37,4 @@ function App() {
   );
 }
 
-export default App;
+export default Popup;
