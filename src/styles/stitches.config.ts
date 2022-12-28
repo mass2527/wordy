@@ -22,5 +22,13 @@ export const { styled, globalCss } = createStitches({
       18: '1.125rem',
       20: '1.25rem',
     },
+    space: {
+      4: '0.25rem',
+      8: '0.5rem',
+      16: '1rem',
+    },
+    fonts: {
+      untitled: 'Untitled Sans, -apple-system, system-ui, sans-serif',
+    },
   },
 });
