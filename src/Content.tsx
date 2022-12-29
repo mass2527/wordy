@@ -237,7 +237,7 @@ function Content() {
           id='assistant-tooltip'
           ref={adjustTooltipStyles}
           style={{
-            maxWidth: '500px',
+            maxWidth: '300px',
             maxHeight: '500px',
             position: 'absolute',
             zIndex: 2147483647,
@@ -254,7 +254,11 @@ function Content() {
           {(pronunciations.american.symbol !== '' ||
             pronunciations.british.symbol !== '') &&
             settings.showPronunciationInfo && (
-              <Flex gap={8} css={{ color: '$neutral200', mb: '$4' }}>
+              <Flex
+                gap={8}
+                wrap='wrap'
+                css={{ color: '$neutral200', mb: '$4' }}
+              >
                 {pronunciations.american.symbol !== '' && (
                   <Flex align='center' gap={4}>
                     <Text color='neutral200' css={{ fontSize: '14px' }}>
