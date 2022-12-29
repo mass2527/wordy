@@ -15,9 +15,11 @@ chrome.runtime.onMessage.addListener(
       .then((htmlString) => {
         const $ = cheerio.load(htmlString);
         const searchBox = $('.search_box').first();
-        const searchListItems = searchBox.find('.list_search').find('li');
+        const searchListItems = searchBox
+          .find('.list_search')
+          .first()
+          .find('li');
         const searchResult = searchListItems.text();
-
         const listenElement = $('.wrap_listen').first();
         const pronounceElement = listenElement.find('.txt_pronounce');
         const americanSymbol = pronounceElement.first().text();
