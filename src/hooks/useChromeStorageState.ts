@@ -7,12 +7,16 @@ type AreaName = keyof Pick<
 >;
 type StorageChangedEvent = ChromeStorage['onChanged'];
 
-function useChromeStorageState<T>(
-  key: string,
-  initialState: T | (() => T),
-  areaName: AreaName = 'sync'
-) {
-  const [value, setValue] = useState(initialState);
+function useChromeStorageState<T>({
+  key,
+  defaultValue,
+  areaName = 'sync',
+}: {
+  key: string;
+  defaultValue: T | (() => T);
+  areaName?: AreaName;
+}) {
+  const [value, setValue] = useState(defaultValue);
 
   useEffect(() => {
     const handleStorageChanged: Parameters<
