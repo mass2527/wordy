@@ -10,7 +10,7 @@ type StorageChangedEvent = ChromeStorage['onChanged'];
 function useChromeStorageState<T>({
   key,
   defaultValue,
-  areaName = 'sync',
+  areaName = 'local',
 }: {
   key: string;
   defaultValue: T | (() => T);
@@ -37,6 +37,8 @@ function useChromeStorageState<T>({
 
   useEffect(() => {
     chrome.storage[areaName].get(key, (items) => {
+      if (typeof items[key] === 'undefined') return;
+
       setValue(items[key]);
     });
   }, [areaName, key]);
