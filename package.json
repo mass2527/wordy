@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@crxjs/vite-plugin": "^1.0.14",
+    "@radix-ui/react-icons": "^1.1.1",
     "@radix-ui/react-switch": "^1.0.1",
     "@stitches/react": "^1.2.8",
     "cheerio": "^1.0.0-rc.12",

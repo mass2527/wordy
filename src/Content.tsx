@@ -4,38 +4,65 @@ import { DeepPartial } from './utils/DeepPartial';
 import usePrevious from './hooks/usePrevious';
 import { getWordAtMousePoint } from './utils/getWordAtMousePoint';
 import { Box } from './components/Box';
+import useChromeStorageState from './hooks/useChromeStorageState';
+import { SpeakerLoudIcon } from '@radix-ui/react-icons';
+import { Flex } from './components/Flex';
+import { Text } from './components/Text';
+import { Button } from './components/Button';
+import { center } from './styles/center';
+
+type TooltipStyles = DeepPartial<{
+  position: {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+  };
+  size: {
+    width: number;
+    height: number;
+  };
+}>;
+
+const INITIAL_WORD_DETAILS = {
+  word: '',
+  definition: '',
+  fontSize: 0,
+  pronunciations: {
+    american: {
+      symbol: '',
+      href: '',
+    },
+    british: {
+      symbol: '',
+      href: '',
+    },
+  },
+};
+
+export type WordDetails = typeof INITIAL_WORD_DETAILS;
+
+export const INITIAL_SETTINGS = {
+  key: 'settings',
+  defaultValue: {
+    enabled: true,
+    showPronunciationInfo: true,
+  },
+};
 
 function Content() {
-  const [wordDetails, setWordDetails] = useState({
-    word: '',
-    definition: '',
-    fontSize: 0,
-  });
+  const [wordDetails, setWordDetails] = useState(INITIAL_WORD_DETAILS);
   const [isHotKeyPressed, setIsHotKeyPressed] = useState(false);
-  const [tooltipStyles, setTooltipStyles] = useState<
-    DeepPartial<{
-      position: {
-        left: number;
-        top: number;
-        right: number;
-        bottom: number;
-      };
-      size: {
-        width: number;
-        height: number;
-      };
-    }>
-  >({});
+  const [tooltipStyles, setTooltipStyles] = useState<TooltipStyles>({});
   const previousWord = usePrevious(wordDetails.word);
+  const [settings] = useChromeStorageState(INITIAL_SETTINGS);
+
+  const { pronunciations } = wordDetails;
 
   useEffect(() => {
     const handleFocus = () => {
       setIsHotKeyPressed(false);
-      setWordDetails({
-        word: '',
-        definition: '',
-        fontSize: 0,
-      });
+      setWordDetails(INITIAL_WORD_DETAILS);
       setTooltipStyles({});
     };
 
@@ -60,21 +87,19 @@ function Content() {
       if (!isHotKey(event)) return;
 
       setIsHotKeyPressed(false);
-      setWordDetails({
-        word: '',
-        definition: '',
-        fontSize: 0,
-      });
+      setWordDetails(INITIAL_WORD_DETAILS);
       setTooltipStyles({});
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
+    if (settings.enabled) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('keyup', handleKeyUp);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener('keyup', handleKeyUp);
+      };
+    }
+  }, [settings.enabled]);
 
   useEffect(() => {
     const handleDebouncedMouseMove = debounce((event: MouseEvent) => {
@@ -98,18 +123,14 @@ function Content() {
       if (wordDetails.word === sanitizedWord || previousWord === sanitizedWord)
         return;
 
-      setWordDetails({
-        word: sanitizedWord,
-        definition: '',
-        fontSize: 0,
-      });
+      setWordDetails({ ...INITIAL_WORD_DETAILS, word: sanitizedWord });
 
       const isSupportedWord = (word: string) => /^[A-Za-z\s\_]*$/.test(word);
       if (!isSupportedWord(sanitizedWord)) return;
 
       chrome.runtime.sendMessage(
         { type: 'word', data: sanitizedWord },
-        (response) => {
+        (response: Pick<WordDetails, 'definition' | 'pronunciations'>) => {
           const elementFontSize = parseInt(
             getComputedStyle(elementAtPoint).fontSize,
           );
@@ -121,8 +142,9 @@ function Content() {
           });
           setWordDetails((prevTranslation) => ({
             ...prevTranslation,
-            definition: response.data,
+            definition: response.definition,
             fontSize: elementFontSize,
+            pronunciations: response.pronunciations,
           }));
         },
       );
@@ -198,8 +220,18 @@ function Content() {
     }
   };
 
+  const playAudio = debounce((src: string) => {
+    const audio = new Audio(src);
+    audio.play();
+  }, 200);
+
   return (
-    <div>
+    <Box
+      css={{
+        color: '$neutral100',
+        fontSize: '16px',
+      }}
+    >
       {wordDetails.definition && (
         <Box
           id='assistant-tooltip'
@@ -214,24 +246,64 @@ function Content() {
             ...tooltipStyles.size,
           }}
           css={{
-            color: '$neutral100',
             bc: '$primary',
             br: '$8',
             p: '$8',
           }}
         >
+          {(pronunciations.american.symbol !== '' ||
+            pronunciations.british.symbol !== '') &&
+            settings.showPronunciationInfo && (
+              <Flex gap={8} css={{ color: '$neutral200', mb: '$4' }}>
+                {pronunciations.american.symbol !== '' && (
+                  <Flex align='center' gap={4}>
+                    <Text color='neutral200' css={{ fontSize: '14px' }}>
+                      미국 {pronunciations.american.symbol}
+                    </Text>
+                    {pronunciations.american.href !== '' && (
+                      <Button
+                        onClick={() => playAudio(pronunciations.american.href)}
+                        aria-label='미국식 발음으로 듣기'
+                        css={center}
+                        type='button'
+                      >
+                        <SpeakerLoudIcon />
+                      </Button>
+                    )}
+                  </Flex>
+                )}
+
+                {pronunciations.british.symbol !== '' && (
+                  <Flex align='center' gap={4}>
+                    <Text color='neutral200' css={{ fontSize: '14px' }}>
+                      영국 {pronunciations.british.symbol}
+                    </Text>
+                    {pronunciations.british.href !== '' && (
+                      <Button
+                        onClick={() => playAudio(pronunciations.british.href)}
+                        aria-label='영국식 발음으로 듣기'
+                        css={center}
+                        type='button'
+                      >
+                        <SpeakerLoudIcon fontSize={40} />
+                      </Button>
+                    )}
+                  </Flex>
+                )}
+              </Flex>
+            )}
+
           <Box
             // rome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
             dangerouslySetInnerHTML={{
-              __html: `${wordDetails.definition.replace(
-                /([2-9]\.)/g,
-                '<br/>$1',
-              )}`,
+              __html: `${wordDetails.definition
+                .replace(/([2-9]\.)/g, '<br/>$1')
+                .replace(/(\d\.)/g, '$1 ')}`,
             }}
           />
         </Box>
       )}
-    </div>
+    </Box>
   );
 }
 
