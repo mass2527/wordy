@@ -44,10 +44,10 @@ function useChromeStorageState<T>({
   const setChromeStorage = useCallback(
     (value: T) => {
       chrome.storage[areaName].set({
-        key: value,
+        [key]: value,
       });
     },
-    [areaName, key]
+    [areaName, key],
   );
 
   return [value, setChromeStorage] as const;
