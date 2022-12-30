@@ -237,7 +237,7 @@ function Content() {
           id='assistant-tooltip'
           ref={adjustTooltipStyles}
           style={{
-            maxWidth: '300px',
+            maxWidth: '350px',
             maxHeight: '500px',
             position: 'absolute',
             zIndex: 2147483647,
