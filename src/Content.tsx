@@ -230,6 +230,7 @@ function Content() {
       css={{
         color: '$neutral100',
         fontSize: '16px',
+        fontFamily: '$untitled',
       }}
     >
       {wordDetails.definition && (
