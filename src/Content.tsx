@@ -249,6 +249,7 @@ function Content() {
             bc: '$primary',
             br: '$8',
             p: '$8',
+            lh: '1.5',
           }}
         >
           {(pronunciations.american.symbol !== '' ||
