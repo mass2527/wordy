@@ -3,7 +3,7 @@ import { Flex } from './components/Flex';
 import { Switch } from './components/Switch';
 import { Text } from './components/Text';
 import { INITIAL_SETTINGS } from './Content';
-import useChromeStorageState from './hooks/useChromeStorageState';
+import { useChromeStorageState } from './hooks';
 
 function Popup() {
   const [settings, setSettings] = useChromeStorageState(INITIAL_SETTINGS);
