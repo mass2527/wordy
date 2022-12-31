@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
 import { DeepPartial } from './utils/DeepPartial';
-import usePrevious from './hooks/usePrevious';
 import { getWordAtMousePoint } from './utils/getWordAtMousePoint';
 import { Box } from './components/Box';
-import useChromeStorageState from './hooks/useChromeStorageState';
 import { SpeakerLoudIcon } from '@radix-ui/react-icons';
 import { Flex } from './components/Flex';
 import { Text } from './components/Text';
 import { Button } from './components/Button';
 import { center } from './styles/center';
+import { useChromeStorageState, usePrevious } from './hooks';
 
 type TooltipStyles = DeepPartial<{
   position: {

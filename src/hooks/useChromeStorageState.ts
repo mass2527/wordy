@@ -7,7 +7,7 @@ type AreaName = keyof Pick<
 >;
 type StorageChangedEvent = ChromeStorage['onChanged'];
 
-function useChromeStorageState<T>({
+export function useChromeStorageState<T>({
   key,
   defaultValue,
   areaName = 'local',
@@ -54,5 +54,3 @@ function useChromeStorageState<T>({
 
   return [value, setChromeStorage] as const;
 }
-
-export default useChromeStorageState;
