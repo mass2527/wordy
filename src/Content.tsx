@@ -60,6 +60,8 @@ function Content() {
   const { pronunciations } = wordDetails;
 
   useEffect(() => {
+    if (!settings.enabled) return;
+
     const handleFocus = () => {
       setIsHotKeyPressed(false);
       setWordDetails(INITIAL_WORD_DETAILS);
@@ -70,9 +72,11 @@ function Content() {
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
-  }, []);
+  }, [settings.enabled]);
 
   useEffect(() => {
+    if (!settings.enabled) return;
+
     const IS_MAC_OS = /Mac OS X/.test(navigator.userAgent);
     const isHotKey = (event: KeyboardEvent) =>
       IS_MAC_OS ? event.key === 'Meta' : event.key === 'Control';
@@ -91,17 +95,18 @@ function Content() {
       setTooltipStyles({});
     };
 
-    if (settings.enabled) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.addEventListener('keyup', handleKeyUp);
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-        document.removeEventListener('keyup', handleKeyUp);
-      };
-    }
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+    };
   }, [settings.enabled]);
 
   useEffect(() => {
+    if (!settings.enabled) return;
+    if (!isHotKeyPressed) return;
+
     const handleDebouncedMouseMove = debounce((event: MouseEvent) => {
       const elementAtPoint = document.elementFromPoint(
         event.clientX,
@@ -150,13 +155,11 @@ function Content() {
       );
     }, 100);
 
-    if (isHotKeyPressed) {
-      document.addEventListener('mousemove', handleDebouncedMouseMove);
-      return () => {
-        document.removeEventListener('mousemove', handleDebouncedMouseMove);
-      };
-    }
-  }, [isHotKeyPressed, wordDetails, previousWord]);
+    document.addEventListener('mousemove', handleDebouncedMouseMove);
+    return () => {
+      document.removeEventListener('mousemove', handleDebouncedMouseMove);
+    };
+  }, [settings.enabled, isHotKeyPressed, wordDetails, previousWord]);
 
   const adjustTooltipStyles = (node: HTMLDivElement | null) => {
     if (node === null) return;
