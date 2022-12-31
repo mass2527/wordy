@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useFreshRef } from './useFreshRef';
 
-export function usePersistentCallback<T extends (...args: any[]) => void>(
+export function usePersistentCallback<T extends (...args: any[]) => any>(
   callback: T,
 ) {
   const freshCallbackRef = useFreshRef(callback);
