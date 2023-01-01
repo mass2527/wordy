@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { usePersistentCallback } from './usePersistentCallback';
 
-export function useEventListener({
+export function useEventListener<K extends keyof WindowEventMap>({
   enabled,
   eventTarget,
   type,
@@ -10,11 +10,11 @@ export function useEventListener({
 }: {
   enabled: boolean;
   eventTarget: Window & typeof globalThis;
-  type: keyof WindowEventMap;
-  listener: EventListener;
+  type: K;
+  listener: (event: WindowEventMap[K]) => void;
   options?: boolean | AddEventListenerOptions;
 }): void;
-export function useEventListener({
+export function useEventListener<K extends keyof DocumentEventMap>({
   enabled,
   eventTarget,
   type,
@@ -23,13 +23,13 @@ export function useEventListener({
 }: {
   enabled: boolean;
   eventTarget: Document;
-  type: keyof DocumentEventMap;
-  listener: EventListener;
+  type: K;
+  listener: (event: DocumentEventMap[K]) => void;
   options?: boolean | AddEventListenerOptions;
 }): void;
 
 export function useEventListener<
-  T extends (Window & typeof globalThis) | Document,
+  K extends keyof WindowEventMap | keyof DocumentEventMap,
 >({
   enabled = true,
   eventTarget,
@@ -38,9 +38,13 @@ export function useEventListener<
   options,
 }: {
   enabled?: boolean;
-  eventTarget: T;
-  type: keyof WindowEventMap | keyof DocumentEventMap;
-  listener: EventListener;
+  eventTarget: (Window & typeof globalThis) | Document;
+  type: K;
+  listener: K extends keyof WindowEventMap
+    ? (event: WindowEventMap[K]) => void
+    : K extends keyof DocumentEventMap
+    ? (event: DocumentEventMap[K]) => void
+    : never;
   options?: boolean | AddEventListenerOptions;
 }) {
   const persistentListener = usePersistentCallback(listener);
@@ -48,9 +52,17 @@ export function useEventListener<
   useEffect(() => {
     if (!enabled) return;
 
-    eventTarget.addEventListener(type, persistentListener, options);
+    eventTarget.addEventListener(
+      type,
+      persistentListener as EventListener,
+      options,
+    );
     return () => {
-      eventTarget.removeEventListener(type, persistentListener, options);
+      eventTarget.removeEventListener(
+        type,
+        persistentListener as EventListener,
+        options,
+      );
     };
   }, [enabled, eventTarget, type, options]);
 }
