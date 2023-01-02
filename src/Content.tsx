@@ -11,6 +11,7 @@ import { center } from './styles/center';
 import {
   useChromeStorageState,
   useDocumentEventListener,
+  useFreshRef,
   useWindowEventListener,
 } from './hooks';
 
@@ -148,6 +149,7 @@ function Content() {
     useReducer(reducer, INITIAL_STATE);
   const { pronunciations } = wordDetails;
   const [settings] = useChromeStorageState(INITIAL_SETTINGS);
+  const freshIsHotKeyPressedRef = useFreshRef(isHotKeyPressed);
 
   useWindowEventListener({
     enabled: settings.enabled,
@@ -209,6 +211,10 @@ function Content() {
       chrome.runtime.sendMessage(
         { type: 'word', data: sanitizedWord },
         (response: Pick<WordDetails, 'definition' | 'pronunciations'>) => {
+          if (!freshIsHotKeyPressedRef.current) {
+            dispatch({ type: 'RESET' });
+            return;
+          }
           const elementFontSize = parseInt(
             getComputedStyle(elementAtPoint).fontSize,
           );
