@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import debounce from 'lodash/debounce';
 import { DeepPartial } from './utils/DeepPartial';
 import { getWordAtMousePoint } from './utils/getWordAtMousePoint';
@@ -8,7 +8,11 @@ import { Flex } from './components/Flex';
 import { Text } from './components/Text';
 import { Button } from './components/Button';
 import { center } from './styles/center';
-import { useChromeStorageState, usePrevious } from './hooks';
+import {
+  useChromeStorageState,
+  useDocumentEventListener,
+  useWindowEventListener,
+} from './hooks';
 
 type TooltipStyles = DeepPartial<{
   position: {
@@ -49,64 +53,55 @@ export const INITIAL_SETTINGS = {
   },
 };
 
+const IS_MAC_OS = /Mac OS X/.test(navigator.userAgent);
+const isHotKey = (event: KeyboardEvent) =>
+  IS_MAC_OS ? event.key === 'Meta' : event.key === 'Control';
+
 function Content() {
   const [wordDetails, setWordDetails] = useState(INITIAL_WORD_DETAILS);
   const [isHotKeyPressed, setIsHotKeyPressed] = useState(false);
   const [tooltipStyles, setTooltipStyles] = useState<TooltipStyles>({});
-  const previousWord = usePrevious(wordDetails.word);
   const [settings] = useChromeStorageState(INITIAL_SETTINGS);
 
   const { pronunciations } = wordDetails;
 
-  useEffect(() => {
-    if (!settings.enabled) return;
-
-    const handleFocus = () => {
+  useWindowEventListener({
+    enabled: settings.enabled,
+    type: 'focus',
+    listener: () => {
       setIsHotKeyPressed(false);
       setWordDetails(INITIAL_WORD_DETAILS);
       setTooltipStyles({});
-    };
+    },
+  });
 
-    window.addEventListener('focus', handleFocus);
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [settings.enabled]);
-
-  useEffect(() => {
-    if (!settings.enabled) return;
-
-    const IS_MAC_OS = /Mac OS X/.test(navigator.userAgent);
-    const isHotKey = (event: KeyboardEvent) =>
-      IS_MAC_OS ? event.key === 'Meta' : event.key === 'Control';
-
-    const handleKeyDown = (event: KeyboardEvent) => {
+  useDocumentEventListener({
+    enabled: settings.enabled,
+    type: 'keydown',
+    listener: (event) => {
       if (event.repeat) return;
       if (!isHotKey(event)) return;
 
       setIsHotKeyPressed(true);
-    };
-    const handleKeyUp = (event: KeyboardEvent) => {
+    },
+  });
+
+  useDocumentEventListener({
+    enabled: settings.enabled,
+    type: 'keyup',
+    listener: (event) => {
       if (!isHotKey(event)) return;
 
       setIsHotKeyPressed(false);
       setWordDetails(INITIAL_WORD_DETAILS);
       setTooltipStyles({});
-    };
+    },
+  });
 
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [settings.enabled]);
-
-  useEffect(() => {
-    if (!settings.enabled) return;
-    if (!isHotKeyPressed) return;
-
-    const handleDebouncedMouseMove = debounce((event: MouseEvent) => {
+  useDocumentEventListener({
+    enabled: settings.enabled && isHotKeyPressed,
+    type: 'mousemove',
+    listener: debounce((event: MouseEvent) => {
       const elementAtPoint = document.elementFromPoint(
         event.clientX,
         event.clientY,
@@ -124,8 +119,7 @@ function Content() {
       const sanitizedWord = /^\w+\'\w+$/.test(wordAtMousePoint)
         ? wordAtMousePoint.split("'")[0]
         : wordAtMousePoint;
-      if (wordDetails.word === sanitizedWord || previousWord === sanitizedWord)
-        return;
+      if (wordDetails.word === sanitizedWord) return;
 
       setWordDetails({ ...INITIAL_WORD_DETAILS, word: sanitizedWord });
 
@@ -152,13 +146,8 @@ function Content() {
           }));
         },
       );
-    }, 100);
-
-    document.addEventListener('mousemove', handleDebouncedMouseMove);
-    return () => {
-      document.removeEventListener('mousemove', handleDebouncedMouseMove);
-    };
-  }, [settings.enabled, isHotKeyPressed, wordDetails, previousWord]);
+    }, 100),
+  });
 
   const adjustTooltipStyles = (node: HTMLDivElement | null) => {
     if (node === null) return;
