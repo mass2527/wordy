@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { usePersistentCallback } from './usePersistentCallback';
+import { usePreservedCallback } from './usePreservedCallback';
 
 export function useEventListener<K extends keyof WindowEventMap>({
   enabled,
@@ -47,22 +47,22 @@ export function useEventListener<
     : never;
   options?: boolean | AddEventListenerOptions;
 }) {
-  const persistentListener = usePersistentCallback(listener);
+  const preservedListener = usePreservedCallback(listener);
 
   useEffect(() => {
     if (!enabled) return;
 
     eventTarget.addEventListener(
       type,
-      persistentListener as EventListener,
+      preservedListener as EventListener,
       options,
     );
     return () => {
       eventTarget.removeEventListener(
         type,
-        persistentListener as EventListener,
+        preservedListener as EventListener,
         options,
       );
     };
-  }, [enabled, eventTarget, type, options]);
+  }, [enabled, eventTarget, type, preservedListener, options]);
 }
