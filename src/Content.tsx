@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useReducer } from 'react';
 import debounce from 'lodash/debounce';
 import { DeepPartial } from './utils/DeepPartial';
 import { getWordAtMousePoint } from './utils/getWordAtMousePoint';
@@ -14,37 +14,6 @@ import {
   useWindowEventListener,
 } from './hooks';
 
-type TooltipStyles = DeepPartial<{
-  position: {
-    left: number;
-    top: number;
-    right: number;
-    bottom: number;
-  };
-  size: {
-    width: number;
-    height: number;
-  };
-}>;
-
-const INITIAL_WORD_DETAILS = {
-  word: '',
-  definition: '',
-  fontSize: 0,
-  pronunciations: {
-    american: {
-      symbol: '',
-      href: '',
-    },
-    british: {
-      symbol: '',
-      href: '',
-    },
-  },
-};
-
-export type WordDetails = typeof INITIAL_WORD_DETAILS;
-
 export const INITIAL_SETTINGS = {
   key: 'settings',
   defaultValue: {
@@ -57,21 +26,134 @@ const IS_MAC_OS = /Mac OS X/.test(navigator.userAgent);
 const isHotKey = (event: KeyboardEvent) =>
   IS_MAC_OS ? event.key === 'Meta' : event.key === 'Control';
 
-function Content() {
-  const [wordDetails, setWordDetails] = useState(INITIAL_WORD_DETAILS);
-  const [isHotKeyPressed, setIsHotKeyPressed] = useState(false);
-  const [tooltipStyles, setTooltipStyles] = useState<TooltipStyles>({});
-  const [settings] = useChromeStorageState(INITIAL_SETTINGS);
+type State = {
+  wordDetails: {
+    word: string;
+    definition: string;
+    fontSize: number;
+    pronunciations: {
+      american: {
+        symbol: string;
+        href: string;
+      };
+      british: {
+        symbol: string;
+        href: string;
+      };
+    };
+  };
+  isHotKeyPressed: boolean;
+  tooltipStyles: DeepPartial<{
+    position: {
+      left: number;
+      top: number;
+      right: number;
+      bottom: number;
+    };
+    size: {
+      width: number;
+      height: number;
+    };
+  }>;
+};
+export type WordDetails = State['wordDetails'];
 
+const INITIAL_STATE: State = {
+  wordDetails: {
+    word: '',
+    definition: '',
+    fontSize: 0,
+    pronunciations: {
+      american: {
+        symbol: '',
+        href: '',
+      },
+      british: {
+        symbol: '',
+        href: '',
+      },
+    },
+  },
+  isHotKeyPressed: false,
+  tooltipStyles: {},
+};
+
+type Action =
+  | {
+      type: 'RESET' | 'PRESSED_HOT_KEY';
+    }
+  | { type: 'CHANGED_WORD'; word: State['wordDetails']['word'] }
+  | {
+      type: 'TRANSLATED_WORD';
+      position: State['tooltipStyles']['position'];
+      definition: State['wordDetails']['definition'];
+      fontSize: State['wordDetails']['fontSize'];
+      pronunciations: State['wordDetails']['pronunciations'];
+    }
+  | {
+      type: 'CHANGED_TOOLTIP_STYLES';
+      position?: State['tooltipStyles']['position'];
+      size?: State['tooltipStyles']['size'];
+    };
+
+const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case 'RESET':
+      return {
+        ...INITIAL_STATE,
+      };
+    case 'PRESSED_HOT_KEY':
+      return { ...state, isHotKeyPressed: true };
+    case 'CHANGED_WORD':
+      return {
+        ...state,
+        wordDetails: {
+          ...INITIAL_STATE.wordDetails,
+          word: action.word,
+        },
+      };
+    case 'TRANSLATED_WORD':
+      return {
+        ...state,
+        tooltipStyles: {
+          position: action.position,
+        },
+        wordDetails: {
+          ...state.wordDetails,
+          definition: action.definition,
+          fontSize: action.fontSize,
+          pronunciations: action.pronunciations,
+        },
+      };
+    case 'CHANGED_TOOLTIP_STYLES': {
+      return {
+        ...state,
+        tooltipStyles: {
+          position: {
+            ...state.tooltipStyles.position,
+            ...action.position,
+          },
+          size: {
+            ...state.tooltipStyles.size,
+            ...action.size,
+          },
+        },
+      };
+    }
+  }
+};
+
+function Content() {
+  const [{ wordDetails, isHotKeyPressed, tooltipStyles }, dispatch] =
+    useReducer(reducer, INITIAL_STATE);
   const { pronunciations } = wordDetails;
+  const [settings] = useChromeStorageState(INITIAL_SETTINGS);
 
   useWindowEventListener({
     enabled: settings.enabled,
     type: 'focus',
     listener: () => {
-      setIsHotKeyPressed(false);
-      setWordDetails(INITIAL_WORD_DETAILS);
-      setTooltipStyles({});
+      dispatch({ type: 'RESET' });
     },
   });
 
@@ -82,7 +164,7 @@ function Content() {
       if (event.repeat) return;
       if (!isHotKey(event)) return;
 
-      setIsHotKeyPressed(true);
+      dispatch({ type: 'PRESSED_HOT_KEY' });
     },
   });
 
@@ -92,9 +174,7 @@ function Content() {
     listener: (event) => {
       if (!isHotKey(event)) return;
 
-      setIsHotKeyPressed(false);
-      setWordDetails(INITIAL_WORD_DETAILS);
-      setTooltipStyles({});
+      dispatch({ type: 'RESET' });
     },
   });
 
@@ -121,7 +201,7 @@ function Content() {
         : wordAtMousePoint;
       if (wordDetails.word === sanitizedWord) return;
 
-      setWordDetails({ ...INITIAL_WORD_DETAILS, word: sanitizedWord });
+      dispatch({ type: 'CHANGED_WORD', word: sanitizedWord });
 
       const isSupportedWord = (word: string) => /^[A-Za-z\s\_]*$/.test(word);
       if (!isSupportedWord(sanitizedWord)) return;
@@ -132,18 +212,17 @@ function Content() {
           const elementFontSize = parseInt(
             getComputedStyle(elementAtPoint).fontSize,
           );
-          setTooltipStyles({
+
+          dispatch({
+            type: 'TRANSLATED_WORD',
             position: {
               left: event.clientX,
               top: event.clientY + window.scrollY + elementFontSize,
             },
-          });
-          setWordDetails((prevTranslation) => ({
-            ...prevTranslation,
             definition: response.definition,
             fontSize: elementFontSize,
             pronunciations: response.pronunciations,
-          }));
+          });
         },
       );
     }, 100),
@@ -157,57 +236,53 @@ function Content() {
 
     const isOverflowingHorizontal =
       rect.width > window.innerWidth - 2 * PADDING;
-    const isOverflowingRight = rect.right > window.innerWidth - PADDING;
     if (isOverflowingHorizontal) {
-      setTooltipStyles((prevTooltipPosition) => ({
-        position: {
-          ...prevTooltipPosition.position,
-          left: PADDING,
-        },
-        size: {
-          ...prevTooltipPosition.size,
-          width: window.innerWidth - 2 * PADDING,
-        },
-      }));
+      dispatch({
+        type: 'CHANGED_TOOLTIP_STYLES',
+        position: { left: PADDING },
+        size: { width: window.innerWidth - 2 * PADDING },
+      });
       return;
-    } else if (isOverflowingRight) {
-      setTooltipStyles((prevTooltipPosition) => ({
-        ...prevTooltipPosition,
+    }
+
+    const isOverflowingRight = rect.right > window.innerWidth - PADDING;
+    if (isOverflowingRight) {
+      dispatch({
+        type: 'CHANGED_TOOLTIP_STYLES',
         position: {
-          ...prevTooltipPosition.position,
           left: undefined,
           right: PADDING,
         },
-      }));
+      });
       return;
     }
 
     const isOverflowingVertical =
       rect.height > window.innerHeight - 2 * PADDING;
-    const isOverflowingBottom = rect.bottom > window.innerHeight - PADDING;
     if (isOverflowingVertical) {
-      setTooltipStyles((prevTooltipPosition) => ({
+      dispatch({
+        type: 'CHANGED_TOOLTIP_STYLES',
         position: {
-          ...prevTooltipPosition.position,
           top: window.scrollY + PADDING,
         },
         size: {
-          ...prevTooltipPosition.size,
           height: window.innerHeight - 2 * PADDING,
         },
-      }));
-    } else if (isOverflowingBottom) {
-      setTooltipStyles((prevTooltipPosition) => ({
-        ...prevTooltipPosition,
+      });
+    }
+
+    const isOverflowingBottom = rect.bottom > window.innerHeight - PADDING;
+    if (isOverflowingBottom) {
+      dispatch({
+        type: 'CHANGED_TOOLTIP_STYLES',
         position: {
-          ...prevTooltipPosition.position,
           top:
             rect.top +
             window.scrollY -
             rect.height -
             wordDetails.fontSize * 1.5,
         },
-      }));
+      });
     }
   };
 
