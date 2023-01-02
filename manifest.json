@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Wordy",
-  "description": "A simple extension to help you learn new words",
-  "version": "1.1.1",
+  "description": "영어 단어에 마우스를 올리면 뜻, 발음 및 발음기호에 대한 번역 정보를 툴팁을 통해 제공해 줍니다.",
+  "version": "1.1.2",
   "action": { "default_popup": "index.html" },
   "content_scripts": [
     {
