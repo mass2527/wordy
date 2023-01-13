@@ -1,16 +1,19 @@
 import cheerio from 'cheerio';
-import { WordDetails } from './Content';
+import { Context } from './machines/wordyMachine';
 
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener(
   (
-    message,
+    message: {
+      data: string;
+    },
     sender,
     sendResponse: (
-      response: Pick<WordDetails, 'definition' | 'pronunciations'>,
+      response: Pick<Context['wordDetails'], 'definition' | 'pronunciations'>,
     ) => void,
   ) => {
-    fetch(`https://dic.daum.net/search.do?q=${message.data}`)
+    const wordWrittenInLowerCase = message.data.toLowerCase();
+    fetch(`https://dic.daum.net/search.do?q=${wordWrittenInLowerCase}`)
       .then((response) => response.text())
       .then((htmlString) => {
         const $ = cheerio.load(htmlString);

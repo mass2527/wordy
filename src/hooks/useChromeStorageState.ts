@@ -5,7 +5,7 @@ type AreaName = keyof Pick<
   ChromeStorage,
   'sync' | 'local' | 'managed' | 'session'
 >;
-type StorageChangedEvent = ChromeStorage['onChanged'];
+export type StorageChangedEvent = ChromeStorage['onChanged'];
 
 export function useChromeStorageState<T>({
   key,

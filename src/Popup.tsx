@@ -23,15 +23,17 @@ function Popup() {
             }}
           />
         </Flex>
-        <Flex justify='between' align='center'>
-          <Text size={14}>발음 기호 및 음성 정보 표시</Text>
-          <Switch
-            checked={settings.showPronunciationInfo}
-            onCheckedChange={(showPronunciationInfo) => {
-              setSettings({ ...settings, showPronunciationInfo });
-            }}
-          />
-        </Flex>
+        {settings.enabled && (
+          <Flex justify='between' align='center'>
+            <Text size={14}>발음 기호 및 음성 정보 표시</Text>
+            <Switch
+              checked={settings.showPronunciationInfo}
+              onCheckedChange={(showPronunciationInfo) => {
+                setSettings({ ...settings, showPronunciationInfo });
+              }}
+            />
+          </Flex>
+        )}
       </Flex>
     </Box>
   );
