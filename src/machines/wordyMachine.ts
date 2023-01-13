@@ -244,6 +244,7 @@ const wordyMachine =
             };
           } catch (error) {}
         },
+        // @ts-ignore
         translateWord: async (context, event) => {
           const response: Pick<
             Context['wordDetails'],
