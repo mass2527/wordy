@@ -1,3 +1,9 @@
+# This repository is no longer maintained
+
+Please check out the new version [here](https://github.com/mass2527/english-copilot).
+
+
+
 # [Wordy - English to Korean Tooltip Translator](https://chromewebstore.google.com/detail/wordy-%EC%98%81%EC%96%B4-%EB%8B%A8%EC%96%B4-%EB%A7%88%EC%9A%B0%EC%8A%A4-%ED%88%B4%ED%8C%81-%EB%B2%88%EC%97%AD-%EB%AF%B8%EA%B5%AD%EC%98%81/mklfpioabebeengggdpanllkjjcpjoja?hl=ko&authuser=0)
 
 ![showcase](/public/showcase.gif)
