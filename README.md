@@ -1,4 +1,4 @@
-# This repository is no longer maintained
+# ⚠️ This repository is no longer maintained
 
 Please check out the new version [here](https://github.com/mass2527/english-copilot).
 
